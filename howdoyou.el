@@ -228,7 +228,7 @@ URL is a link string. Download the url and parse it to a DOM object"
                                name))
        (generate-new-buffer name)))))
 
-(defun howdoyou--print-waiting-message (&optional msg &rest args)
+(defun howdoyou--print-message (msg &optional &rest args)
   "Print MSG message and prepare window for howdoyou buffer."
   (unless (equal (window-buffer) howdoyou--current-buffer)
     ;; (switch-to-buffer-other-window howdoyou--current-buffer))
@@ -243,16 +243,14 @@ URL is a link string. Download the url and parse it to a DOM object"
   (with-current-buffer howdoyou--current-buffer
     (let ((inhibit-read-only t))
       (erase-buffer)
-      (insert (if msg
-                  (apply #'format msg args)
-                "Searching...")))
+      (insert (apply #'format msg args)))
     (read-only-mode 1)
     (unless howdoyou-mode
       (howdoyou-mode 1))))
 
 (defun howdoyou-promise-answer (query)
   "Process QUERY and print answers to *How Do You* buffer."
-  (howdoyou--print-waiting-message)
+  (howdoyou--print-message "Searching...")
   (let ((url "https://www.google.com/search")
         (args (concat "?q="
                       (url-hexify-string query)
@@ -271,10 +269,10 @@ URL is a link string. Download the url and parse it to a DOM object"
               (setq howdoyou--current-link-index 0)
               (if howdoyou--links
                   (howdoyou-n-link 0)
-                ;; TODO print this error to howdoyou buffer
+                (howdoyou--print-message "No results \"%s\"" query)
                 (message "howdoyou-promise-answer: No results \"%s\"" query))))
       (catch (lambda (reason)
-               (message "catch error in promise answer: %s" reason))))))
+               (message "howdoyou-promise-answer: catch error: %s" reason))))))
 
 (defun howdoyou--get-so-tags (dom)
   "Extract list of tags from stackoverflow DOM."
@@ -461,7 +459,7 @@ With a PREFIX-ARG, over-ride the current value of variable
            (message "howdoyou-n-link: at final link %s of %s" (1+ cand) total)))
     (when (or (zerop n) (/= cand howdoyou--current-link-index))
       (let ((link (nth cand howdoyou--links)))
-        (howdoyou--print-waiting-message "Loading %s of %s..." (1+ cand) total)
+        (howdoyou--print-message "Loading %s of %s..." (1+ cand) total)
         (promise-chain (howdoyou--promise-dom link)
           (then #'howdoyou--promise-so-answer)
           (then #'howdoyou--print-answer)
