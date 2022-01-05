@@ -4,8 +4,8 @@
 
 ;; Author: Thanh Vuong <thanhvg@gmail.com>
 ;; URL: https://github.com/thanhvg/howdoyou/
-;; Package-Requires: ((emacs "25.1") (promise "1.1") (request "0.3.0") (org "9.2"))
-;; Version: 0.2.1
+;; Package-Requires: ((emacs "25.1") (promise "1.1") (request "0.3.3") (org "9.2"))
+;; Version: 0.2.3
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -52,6 +52,10 @@
 ;; howdoyou-single-buffer            re-use the same output buffer for all operations
 
 ;;; Changelog
+;; 2021-09-09:
+;; - back to use curl if possible
+;; 2021-09-02:
+;; - use url-retrieve as default instead of request
 ;; 2021-07-06:
 ;; - adapt to new SO change: trim score text
 ;; 2020-10-02:
@@ -174,7 +178,7 @@ DOM is a dom object of the google search, returns a list of links"
   (promise-new
    (lambda (resolve reject)
      ;; shadow reject-curl-options to have user agent
-     (let ((request-curl-options `(,(format "-A %s" (howdoyou--get-user-agent)))))
+     (let ((request-curl-options `(,(format "-A \"%s\"" (howdoyou--get-user-agent)))))
        (request url
          :parser (lambda () (progn (decode-coding-region (point-min) (point-max) 'utf-8)
                                    (libxml-parse-html-region (point-min) (point-max))))
@@ -270,10 +274,9 @@ URL is a link string. Download the url and parse it to a DOM object"
               (setq howdoyou--current-link-index 0)
               (if howdoyou--links
                   (howdoyou-n-link 0)
-                (howdoyou--print-message "No results \"%s\"" query)
-                (message "howdoyou-promise-answer: No results \"%s\"" query))))
+                (howdoyou--print-message "No results: \"%s\"" query))))
       (catch (lambda (reason)
-               (message "howdoyou-promise-answer: catch error: %s" reason))))))
+               (howdoyou--print-message "Error: %s" reason))))))
 
 (defun howdoyou--get-so-tags (dom)
   "Extract list of tags from stackoverflow DOM."
